@@ -3,4 +3,4 @@
 // Paste the Google Apps Script "Web app" URL between the quotes below.
 // It looks like: https://script.google.com/macros/s/AKfycb.../exec
 // Leave it empty and the page runs in copy-and-send mode. See README.md for setup.
-window.COUSIN_LORE_ENDPOINT = "";
+window.COUSIN_LORE_ENDPOINT = "https://script.google.com/macros/s/AKfycbzC7Wi9DEK-HZu6xwO3LyNmygSSoaH8Rilcr3kNPwuyR5h4XyuEyc2CjehsPFwSUGjn/exec";
