@@ -3,3 +3,4 @@
 .dropbox.attr
 .dropbox.cache/
 *.swp
+.claude/

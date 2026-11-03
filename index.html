@@ -94,6 +94,8 @@
   .toast span{font-size:13px;opacity:.8}
   footer{text-align:center;color:var(--ink-2);font-size:13px;margin-top:40px}
   [hidden]{display:none !important}
+  .family{font-size:13px;color:var(--ink-2);margin-top:10px}
+  .family b{color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
@@ -104,12 +106,6 @@
     <p class="sub">Hunter is collecting stories, lore, and legends. Please submit as many as you can! Whoever submits the most will get a prize.</p>
   </header>
 
-  <nav class="tabs" id="tabs" hidden>
-    <button id="tab-submit" class="on">Submit</button>
-    <button id="tab-admin">Hunter's view</button>
-  </nav>
-
-  <!-- ========== SUBMIT VIEW ========== -->
   <section id="submit-view">
     <div class="card" id="progress-card" hidden>
       <div class="progress">
@@ -118,6 +114,7 @@
           <div class="msg" id="p-msg">Start with the one you'd tell first.</div>
           <div class="track"><div class="fill" id="p-fill"></div></div>
           <div class="marks"><span>0</span><span>3</span><span>5</span><span>10+</span></div>
+          <div class="family" id="family-total" hidden></div>
         </div>
       </div>
     </div>
@@ -131,7 +128,7 @@
         <input id="name" name="name" autocomplete="given-name" placeholder="First name is fine" maxlength="60" required>
 
         <label for="story">The story <small>— one sentence is plenty. A whole saga is welcome too.</small></label>
-        <textarea id="story" name="story" placeholder="The time we…" required></textarea>
+        <textarea id="story" name="story" placeholder="The time we…" required maxlength="5000"></textarea>
         <div class="hint">Need a nudge? Tap one:</div>
         <div class="chips" id="chips">
           <button type="button" class="chip">Road trips</button>
@@ -160,27 +157,8 @@
 
     <div class="card mine" id="mine" hidden>
       <h2>Your stories so far</h2>
-      <p class="lead">Only you and Hunter can see these.</p>
+      <p class="lead">Remembered on this device. Hunter has all of them.</p>
       <div id="mine-list"></div>
-    </div>
-  </section>
-
-  <!-- ========== ADMIN VIEW ========== -->
-  <section id="admin-view" hidden>
-    <div class="card">
-      <div class="stats">
-        <div class="stat"><b id="stat-stories">0</b><span>stories</span></div>
-        <div class="stat"><b id="stat-cousins">0</b><span>cousins submitted</span></div>
-        <div class="stat"><b id="stat-latest">—</b><span>latest submission</span></div>
-      </div>
-      <div class="toolbar">
-        <button class="ghost small" id="copy-all">Copy everything as text</button>
-        <span class="status" id="admin-status"></span>
-      </div>
-    </div>
-    <div class="card">
-      <h2 style="font-size:22px;margin-bottom:6px">All stories</h2>
-      <div id="admin-list"><p class="empty">Nothing submitted yet.</p></div>
     </div>
   </section>
 
@@ -192,22 +170,25 @@
   <div><b id="toast-title">Saved.</b><span id="toast-sub">Come back whenever another one hits you.</span></div>
 </div>
 
+<!-- config.js holds the Google Apps Script URL. See README.md. -->
+<script src="config.js"></script>
 <script>
 (function(){
   const $ = s => document.querySelector(s);
   const form = $('#story-form'), nameEl = $('#name'), storyEl = $('#story');
   const statusEl = $('#status'), submitBtn = $('#submit-btn'), copyBtn = $('#copy-btn');
   const mineCard = $('#mine'), mineList = $('#mine-list');
-  const DRAFT_KEY = 'cousin-lore-draft';
+  const DRAFT_KEY = 'cousin-lore-draft', MINE_KEY = 'cousin-lore-mine', DEVICE_KEY = 'cousin-lore-device';
 
-  let db = null, user = null, uid = null, myRef = null;
-  let myDoc = { name: '', stories: [] };
+  // The Apps Script web-app URL, set in config.js. Empty = fallback (copy) mode.
+  const ENDPOINT = String(window.COUSIN_LORE_ENDPOINT || '').trim();
+
   let mode = 'loading';
   let writing = false;
-  let allDocs = [];
+  let myDoc = { name: '', stories: [] };
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const rid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+  const rid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
   const fmtDate = ts => { try { return new Date(ts).toLocaleDateString(undefined, {month:'short', day:'numeric'}); } catch { return ''; } };
   function setStatus(el, msg, cls) { el.textContent = msg || ''; el.className = 'status' + (cls ? ' ' + cls : ''); }
   async function copyText(text, el) {
@@ -222,10 +203,22 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
   }
 
+  // ---------- local storage ----------
+  const store = {
+    get(k, fallback) { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? fallback : v; } catch { return fallback; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  // A random per-device id. Lets this device remove its own stories and nobody else's.
+  let device = store.get(DEVICE_KEY, '');
+  if (!device) { device = rid(); store.set(DEVICE_KEY, device); }
+  myDoc = { name: '', stories: [], ...store.get(MINE_KEY, {}) };
+  if (!Array.isArray(myDoc.stories)) myDoc.stories = [];
+  const saveMine = () => store.set(MINE_KEY, myDoc);
+
   // ---------- draft ----------
-  function saveDraft() { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ name: nameEl.value, story: storyEl.value })); } catch {} }
-  function loadDraft() { try { const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (d) { nameEl.value = d.name || ''; storyEl.value = d.story || ''; } } catch {} }
-  function clearDraft() { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ name: nameEl.value })); } catch {} }
+  function saveDraft() { store.set(DRAFT_KEY, { name: nameEl.value, story: storyEl.value }); }
+  function loadDraft() { const d = store.get(DRAFT_KEY, null); if (d) { nameEl.value = d.name || ''; storyEl.value = d.story || ''; } }
+  function clearDraft() { store.set(DRAFT_KEY, { name: nameEl.value }); }
   nameEl.addEventListener('input', saveDraft);
   storyEl.addEventListener('input', saveDraft);
 
@@ -251,13 +244,35 @@
     [10, 'Ten. Nobody can stop you now.'],
   ];
   function renderProgress() {
-    const n = (myDoc.stories || []).length;
+    const n = myDoc.stories.length;
     $('#progress-card').hidden = mode !== 'online';
     $('#p-count').textContent = n;
     let msg = MILESTONES[0][1];
     for (const [k, m] of MILESTONES) if (n >= k) msg = m;
     $('#p-msg').textContent = msg;
     $('#p-fill').style.width = Math.min(100, (n / 10) * 100) + '%';
+  }
+  function renderFamily(stats) {
+    const el = $('#family-total');
+    if (!stats || !stats.ok) { el.hidden = true; return; }
+    const s = Number(stats.stories) || 0, c = Number(stats.cousins) || 0;
+    el.innerHTML = s
+      ? `The family has <b>${s}</b> ${s === 1 ? 'story' : 'stories'} from <b>${c}</b> ${c === 1 ? 'cousin' : 'cousins'} so far.`
+      : 'No stories yet — be the first.';
+    el.hidden = false;
+  }
+
+  // ---------- backend ----------
+  // Apps Script accepts a text/plain POST without a CORS preflight and answers with JSON.
+  async function api(payload) {
+    const res = await fetch(ENDPOINT, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' });
+    if (!res.ok) throw new Error('http_' + res.status);
+    return res.json();
+  }
+  async function refreshStats() {
+    if (mode !== 'online') return;
+    try { const res = await fetch(ENDPOINT, { redirect: 'follow' }); renderFamily(await res.json()); }
+    catch { renderFamily(null); }
   }
 
   // ---------- mode ----------
@@ -285,35 +300,38 @@
     ev.preventDefault();
     if (mode !== 'online' || writing || !validate()) return;
     const entry = { id: rid(), story: storyEl.value.trim(), ts: Date.now() };
-    const next = { name: nameEl.value.trim(), stories: [ ...(myDoc.stories || []), entry ], updated: Date.now() };
+    const name = nameEl.value.trim();
     writing = true; submitBtn.disabled = true; setStatus(statusEl, 'Saving…');
     try {
-      await myRef.set(next);
-      myDoc = next; renderMine(); renderProgress();
+      const res = await api({ action: 'add', id: entry.id, name, story: entry.story, ts: entry.ts, device });
+      if (!res || !res.ok) throw new Error(res && res.error || 'rejected');
+      myDoc.name = name; myDoc.stories.push(entry); saveMine();
+      renderMine(); renderProgress();
       storyEl.value = ''; clearDraft(); setStatus(statusEl, '');
-      const n = next.stories.length;
+      const n = myDoc.stories.length;
       const subs = ['Got another one in you?', 'The next one usually follows right behind.', 'Come back whenever another hits you.', 'Keep them coming.'];
       toast(n, n === 1 ? 'First one saved.' : 'Saved — that\'s ' + n + '.', subs[n % subs.length]);
       storyEl.focus();
+      refreshStats();
     } catch (e) {
-      const code = e && e.code;
-      if (code === 'invalid_argument' || code === 'not_granted' || code === 'revoked') {
-        setMode('offline'); setStatus(statusEl, "Couldn't save from this account — copy it and send it to Hunter instead.", 'err');
-      } else if (code === 'quota_exceeded') setStatus(statusEl, 'Storage is full — tell Hunter.', 'err');
-      else setStatus(statusEl, "Couldn't reach the server. Try again in a moment.", 'err');
+      setStatus(statusEl, "Couldn't reach the server. Try again, or copy it and send it to Hunter.", 'err');
+      copyBtn.hidden = false;
     } finally { writing = false; submitBtn.disabled = false; }
   });
 
   async function deleteMine(id) {
     if (writing) return;
-    const next = { ...myDoc, stories: (myDoc.stories || []).filter(s => s.id !== id), updated: Date.now() };
     writing = true;
-    try { await myRef.set(next); myDoc = next; renderMine(); renderProgress(); }
-    catch { toast('!', "Couldn't remove it", 'Try again in a moment.'); }
+    try {
+      const res = await api({ action: 'delete', id, device });
+      if (!res || !(res.ok || res.error === 'not_found')) throw new Error(res && res.error || 'rejected');
+      myDoc.stories = myDoc.stories.filter(s => s.id !== id); saveMine();
+      renderMine(); renderProgress(); refreshStats();
+    } catch { toast('!', "Couldn't remove it", 'Try again in a moment.'); }
     finally { writing = false; }
   }
   function renderMine() {
-    const list = myDoc.stories || [];
+    const list = myDoc.stories;
     mineCard.hidden = mode !== 'online' || !list.length;
     if (!list.length) { mineList.innerHTML = ''; return; }
     mineList.innerHTML = list.map((e, i) => `
@@ -329,81 +347,11 @@
     else { b.dataset.confirm = '1'; b.textContent = 'Really remove?'; setTimeout(() => { delete b.dataset.confirm; b.textContent = 'Remove'; }, 3000); }
   });
 
-  // ---------- admin ----------
-  function showTab(which) {
-    $('#submit-view').hidden = which !== 'submit';
-    $('#admin-view').hidden = which !== 'admin';
-    $('#tab-submit').classList.toggle('on', which === 'submit');
-    $('#tab-admin').classList.toggle('on', which === 'admin');
-  }
-  $('#tab-submit').addEventListener('click', () => showTab('submit'));
-  $('#tab-admin').addEventListener('click', () => showTab('admin'));
-  function flatten() {
-    const out = [];
-    for (const d of allDocs) for (const e of (d.stories || [])) out.push({ ...e, name: d.name || 'Anonymous' });
-    out.sort((a, b) => (a.ts || 0) - (b.ts || 0));
-    return out;
-  }
-  function renderAdmin() {
-    const all = flatten();
-    $('#stat-stories').textContent = all.length;
-    $('#stat-cousins').textContent = allDocs.filter(d => (d.stories || []).length).length;
-    $('#stat-latest').textContent = all.length ? fmtDate(all[all.length - 1].ts) : '—';
-    const byName = {};
-    for (const e of all) (byName[e.name] ||= []).push(e);
-    const names = Object.keys(byName).sort((a, b) => a.localeCompare(b));
-    $('#admin-list').innerHTML = all.length ? names.map(n => `
-      <h3 style="font-size:18px;margin:18px 0 4px;color:var(--accent)">${esc(n)} <span style="color:var(--ink-2);font-family:Inter;font-size:13px;font-weight:500">· ${byName[n].length}</span></h3>
-      ${byName[n].map((e, i) => `
-        <div class="entry"><div class="num">${i + 1}</div>
-          <div class="body"><p class="text">${esc(e.story)}</p><div class="by">${fmtDate(e.ts)}</div></div></div>`).join('')}`).join('')
-      : '<p class="empty">Nothing submitted yet.</p>';
-  }
-  $('#copy-all').addEventListener('click', () => {
-    const all = flatten();
-    copyText(all.map((e, i) => (i + 1) + '. [' + e.name + '] ' + e.story).join('\n\n'), $('#admin-status'));
-  });
-
   // ---------- boot ----------
   loadDraft();
-  async function init() {
-    if (!(window.claude && typeof window.claude.use === 'function')) { setMode('offline'); return; }
-    let d, u;
-    try { [d, u] = await Promise.all([claude.use('db'), claude.use('user')]); } catch { setMode('offline'); return; }
-    db = d; user = u;
-    if (!db || !user) { setMode('offline'); return; }
-    try { uid = await user.id(); } catch { uid = null; }
-    if (!uid) { setMode('offline'); return; }
-    let canWrite = null;
-    try { canWrite = await user.can('data.write'); } catch {}
-    if (canWrite === false) { setMode('offline'); return; }
-
-    myRef = db.doc('stories/' + uid);
-    setMode('online');
-    setStatus(statusEl, 'Loading your stories…');
-    const loadTimer = setTimeout(() => setStatus(statusEl, "Can't reach saved stories yet — you can still submit."), 10000);
-    myRef.onSnapshot(snap => {
-      if (!snap.metadata.fromCache) { clearTimeout(loadTimer); setStatus(statusEl, ''); }
-      myDoc = snap.exists ? { name: '', stories: [], ...snap.data() } : { name: '', stories: [] };
-      if (!nameEl.value && myDoc.name) nameEl.value = myDoc.name;
-      renderMine(); renderProgress();
-    }, err => {
-      clearTimeout(loadTimer);
-      if (err && (err.code === 'revoked' || err.code === 'not_granted')) setMode('offline');
-      else setStatus(statusEl, "Couldn't load your previous stories.", 'err');
-    });
-
-    let isOwner = false;
-    try { isOwner = await user.isOwner(); } catch {}
-    if (isOwner) {
-      $('#tabs').hidden = false;
-      db.collection('stories').onSnapshot(snap => {
-        allDocs = snap.docs.filter(x => x.exists).map(x => ({ id: x.id, ...x.data() }));
-        renderAdmin();
-      }, err => setStatus($('#admin-status'), "Couldn't load submissions" + (err && err.message ? ': ' + err.message : '.'), 'err'));
-    }
-  }
-  init();
+  if (!nameEl.value && myDoc.name) nameEl.value = myDoc.name;
+  if (!ENDPOINT || !/^https:\/\/script\.google\.com\//.test(ENDPOINT)) { setMode('offline'); }
+  else { setMode('online'); refreshStats(); }
 })();
 </script>
 </body>
