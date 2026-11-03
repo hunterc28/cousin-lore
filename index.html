@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cousin Lore</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F7F1E6; --paper:#FFFDF8; --ink:#2B2218; --ink-2:#6E6052;
+    --accent:#1F4E5F; --accent-dark:#163A47; --warm:#C86B3C; --warm-soft:#F6E3D6;
+    --line:#E6DCCB; --ok:#2E7D4F;
+    --shadow:0 1px 2px rgba(43,34,24,.06), 0 10px 30px -12px rgba(43,34,24,.22);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--cream);color:var(--ink);font-family:Inter,system-ui,-apple-system,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  body{background-image:radial-gradient(circle at 10% 0%,rgba(200,107,60,.10),transparent 45%),radial-gradient(circle at 100% 100%,rgba(31,78,95,.08),transparent 50%);min-height:100vh}
+  h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;letter-spacing:-.01em;margin:0}
+  main{max-width:720px;margin:0 auto;padding:28px 18px 80px}
+  header{text-align:center;padding:40px 0 24px}
+  .mark{font-family:Fraunces,serif;font-style:italic;color:var(--warm);font-size:15px;letter-spacing:.08em;text-transform:uppercase;font-style:normal;font-weight:600;margin-bottom:10px}
+  h1{font-size:clamp(36px,6.5vw,54px);line-height:1.02}
+  h1 em{font-style:italic;font-weight:400;color:var(--accent)}
+  .sub{color:var(--ink-2);margin:14px auto 0;max-width:540px;font-size:17px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow)}
+  .card + .card{margin-top:18px}
+
+  /* progress */
+  .progress{display:flex;align-items:center;gap:16px}
+  .progress .big{font-family:Fraunces,serif;font-size:44px;line-height:1;color:var(--accent);min-width:54px;text-align:center}
+  .progress .big small{display:block;font-family:Inter,sans-serif;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-top:4px}
+  .progress .bar{flex:1}
+  .progress .msg{font-family:Fraunces,serif;font-size:19px;margin-bottom:8px}
+  .track{height:10px;background:var(--cream);border-radius:999px;overflow:hidden;position:relative}
+  .fill{height:100%;background:linear-gradient(90deg,var(--warm),var(--accent));border-radius:999px;width:0;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+  .marks{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2);margin-top:6px;letter-spacing:.03em}
+
+  label{display:block;font-weight:600;font-size:14px;margin:18px 0 6px}
+  label small{font-weight:400;color:var(--ink-2)}
+  input,textarea{width:100%;font:inherit;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;outline:none;transition:border-color .15s,box-shadow .15s}
+  input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(31,78,95,.14)}
+  textarea{resize:vertical;min-height:96px}
+  .hint{color:var(--ink-2);font-size:13px;margin-top:6px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{background:var(--cream);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s,border-color .15s}
+  .chip:hover{background:var(--warm-soft);border-color:#E8C9B5}
+
+  .actions{display:flex;gap:12px;align-items:center;margin-top:22px;flex-wrap:wrap}
+  button{font:inherit;font-weight:600;border:0;border-radius:999px;padding:13px 22px;cursor:pointer;transition:transform .08s,background .15s,opacity .15s}
+  button:active{transform:scale(.98)}
+  button[disabled]{opacity:.55;cursor:default}
+  .primary{background:var(--accent);color:#fff}
+  .primary:hover{background:var(--accent-dark)}
+  .ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);padding:11px 18px}
+  .ghost:hover{background:var(--cream)}
+  .small{padding:7px 12px;font-size:13px}
+  .status{font-size:14px;color:var(--ink-2)}
+  .status.ok{color:var(--ok);font-weight:600}
+  .status.err{color:var(--warm)}
+
+  .banner{background:var(--warm-soft);border:1px solid #E8C9B5;border-radius:12px;padding:12px 14px;font-size:14px;color:var(--ink);margin-bottom:6px}
+  .banner b{font-weight:600}
+  .note{background:var(--cream);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--ink-2);margin-top:18px}
+  .note b{color:var(--ink);font-weight:600}
+
+  .mine h2{font-size:22px;margin-bottom:4px}
+  .mine p.lead{margin:0 0 14px;color:var(--ink-2);font-size:14px}
+  .entry{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--line)}
+  .entry:first-of-type{border-top:0}
+  .entry .num{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--cream);color:var(--accent);font-family:Fraunces,serif;font-weight:700;display:grid;place-items:center;font-size:15px}
+  .entry .body{flex:1;min-width:0}
+  .entry .text{font-size:15px;white-space:pre-wrap;margin:0}
+  .entry .by{font-size:12px;color:var(--ink-2);margin-top:6px}
+  .entry .del{flex:0 0 auto;background:transparent;color:var(--ink-2);border:0;padding:4px 8px;font-size:13px;font-weight:500}
+  .entry .del:hover{color:var(--warm)}
+  .empty{color:var(--ink-2);font-size:14px;padding:6px 0}
+
+  nav.tabs{display:flex;gap:6px;background:rgba(255,255,255,.6);border:1px solid var(--line);border-radius:999px;padding:5px;width:max-content;margin:0 auto 22px}
+  nav.tabs button{background:transparent;color:var(--ink-2);padding:9px 18px;font-weight:600}
+  nav.tabs button.on{background:var(--ink);color:#fff}
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .stat{flex:1;min-width:120px;background:var(--cream);border-radius:12px;padding:12px 14px}
+  .stat b{display:block;font-family:Fraunces,serif;font-size:30px;line-height:1;color:var(--accent)}
+  .stat span{font-size:13px;color:var(--ink-2)}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:14px 20px;border-radius:14px;display:flex;gap:12px;align-items:center;box-shadow:0 20px 40px -10px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;max-width:92vw}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast .dot{width:34px;height:34px;border-radius:50%;background:var(--warm);display:grid;place-items:center;font-family:Fraunces,serif;font-weight:700;font-size:18px;flex:0 0 auto}
+  .toast.show .dot{animation:pop .5s ease-out}
+  @keyframes pop{0%{transform:scale(.5)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+  .toast b{display:block;font-family:Fraunces,serif;font-size:16px}
+  .toast span{font-size:13px;opacity:.8}
+  footer{text-align:center;color:var(--ink-2);font-size:13px;margin-top:40px}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="mark">A family project</div>
+    <h1>Cousin <em>Lore</em></h1>
+    <p class="sub">Hunter is collecting stories, lore, and legends. Please submit as many as you can! Whoever submits the most will get a prize.</p>
+  </header>
+
+  <nav class="tabs" id="tabs" hidden>
+    <button id="tab-submit" class="on">Submit</button>
+    <button id="tab-admin">Hunter's view</button>
+  </nav>
+
+  <!-- ========== SUBMIT VIEW ========== -->
+  <section id="submit-view">
+    <div class="card" id="progress-card" hidden>
+      <div class="progress">
+        <div class="big"><span id="p-count">0</span><small>stories</small></div>
+        <div class="bar">
+          <div class="msg" id="p-msg">Start with the one you'd tell first.</div>
+          <div class="track"><div class="fill" id="p-fill"></div></div>
+          <div class="marks"><span>0</span><span>3</span><span>5</span><span>10+</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="banner" id="offline-banner" hidden>
+        <b>Saving isn't available here.</b> Write your story below, then use the copy button and text or email it to Hunter.
+      </div>
+      <form id="story-form" novalidate>
+        <label for="name">Your name</label>
+        <input id="name" name="name" autocomplete="given-name" placeholder="First name is fine" maxlength="60" required>
+
+        <label for="story">The story <small>— one sentence is plenty. A whole saga is welcome too.</small></label>
+        <textarea id="story" name="story" placeholder="The time we…" required></textarea>
+        <div class="hint">Need a nudge? Tap one:</div>
+        <div class="chips" id="chips">
+          <button type="button" class="chip">Road trips</button>
+          <button type="button" class="chip">Holidays</button>
+          <button type="button" class="chip">Grandparents' house</button>
+          <button type="button" class="chip">Someone got in trouble</button>
+          <button type="button" class="chip">How a nickname stuck</button>
+          <button type="button" class="chip">Food disasters</button>
+          <button type="button" class="chip">Sleepovers</button>
+          <button type="button" class="chip">Pranks</button>
+          <button type="button" class="chip">Things we weren't supposed to do</button>
+          <button type="button" class="chip">Weddings &amp; parties</button>
+          <button type="button" class="chip">Vacations</button>
+          <button type="button" class="chip">Injuries that are funny now</button>
+          <button type="button" class="chip">A line someone still quotes</button>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="primary" id="submit-btn">Submit story</button>
+          <button type="button" class="ghost" id="copy-btn" hidden>Copy to send to Hunter</button>
+          <span class="status" id="status"></span>
+        </div>
+      </form>
+      <div class="note"><b>Come back anytime.</b> Bookmark this page and drop stories in whenever one hits you — they all save here.</div>
+    </div>
+
+    <div class="card mine" id="mine" hidden>
+      <h2>Your stories so far</h2>
+      <p class="lead">Only you and Hunter can see these.</p>
+      <div id="mine-list"></div>
+    </div>
+  </section>
+
+  <!-- ========== ADMIN VIEW ========== -->
+  <section id="admin-view" hidden>
+    <div class="card">
+      <div class="stats">
+        <div class="stat"><b id="stat-stories">0</b><span>stories</span></div>
+        <div class="stat"><b id="stat-cousins">0</b><span>cousins submitted</span></div>
+        <div class="stat"><b id="stat-latest">—</b><span>latest submission</span></div>
+      </div>
+      <div class="toolbar">
+        <button class="ghost small" id="copy-all">Copy everything as text</button>
+        <span class="status" id="admin-status"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h2 style="font-size:22px;margin-bottom:6px">All stories</h2>
+      <div id="admin-list"><p class="empty">Nothing submitted yet.</p></div>
+    </div>
+  </section>
+
+  <footer>Made for the cousins</footer>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <div class="dot" id="toast-dot">1</div>
+  <div><b id="toast-title">Saved.</b><span id="toast-sub">Come back whenever another one hits you.</span></div>
+</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const form = $('#story-form'), nameEl = $('#name'), storyEl = $('#story');
+  const statusEl = $('#status'), submitBtn = $('#submit-btn'), copyBtn = $('#copy-btn');
+  const mineCard = $('#mine'), mineList = $('#mine-list');
+  const DRAFT_KEY = 'cousin-lore-draft';
+
+  let db = null, user = null, uid = null, myRef = null;
+  let myDoc = { name: '', stories: [] };
+  let mode = 'loading';
+  let writing = false;
+  let allDocs = [];
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const rid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+  const fmtDate = ts => { try { return new Date(ts).toLocaleDateString(undefined, {month:'short', day:'numeric'}); } catch { return ''; } };
+  function setStatus(el, msg, cls) { el.textContent = msg || ''; el.className = 'status' + (cls ? ' ' + cls : ''); }
+  async function copyText(text, el) {
+    try { await navigator.clipboard.writeText(text); setStatus(el, 'Copied!', 'ok'); }
+    catch { setStatus(el, 'Copy failed — select the text and copy it manually.', 'err'); }
+    setTimeout(() => setStatus(el, ''), 2500);
+  }
+  let toastTimer;
+  function toast(n, title, sub) {
+    $('#toast-dot').textContent = n; $('#toast-title').textContent = title; $('#toast-sub').textContent = sub;
+    const t = $('#toast'); t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
+  }
+
+  // ---------- draft ----------
+  function saveDraft() { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ name: nameEl.value, story: storyEl.value })); } catch {} }
+  function loadDraft() { try { const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (d) { nameEl.value = d.name || ''; storyEl.value = d.story || ''; } } catch {} }
+  function clearDraft() { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ name: nameEl.value })); } catch {} }
+  nameEl.addEventListener('input', saveDraft);
+  storyEl.addEventListener('input', saveDraft);
+
+  // ---------- memory joggers ----------
+  $('#chips').addEventListener('click', ev => {
+    const c = ev.target.closest('.chip'); if (!c) return;
+    const starter = c.textContent.trim() + ' — the time ';
+    if (!storyEl.value.trim()) storyEl.value = starter;
+    else if (!storyEl.value.endsWith('\n')) storyEl.value += '\n\n' + starter;
+    else storyEl.value += starter;
+    storyEl.focus(); storyEl.setSelectionRange(storyEl.value.length, storyEl.value.length);
+    saveDraft();
+  });
+
+  // ---------- progress ----------
+  const MILESTONES = [
+    [0, "Start with the one you'd tell first."],
+    [1, 'One down. The second is always easier.'],
+    [2, 'Two. Now you\'re remembering things.'],
+    [3, 'Three! Officially warmed up.'],
+    [5, 'Five. Keeper of the lore.'],
+    [7, 'Seven. The family historian.'],
+    [10, 'Ten. Nobody can stop you now.'],
+  ];
+  function renderProgress() {
+    const n = (myDoc.stories || []).length;
+    $('#progress-card').hidden = mode !== 'online';
+    $('#p-count').textContent = n;
+    let msg = MILESTONES[0][1];
+    for (const [k, m] of MILESTONES) if (n >= k) msg = m;
+    $('#p-msg').textContent = msg;
+    $('#p-fill').style.width = Math.min(100, (n / 10) * 100) + '%';
+  }
+
+  // ---------- mode ----------
+  function setMode(m) {
+    mode = m;
+    const offline = m === 'offline';
+    $('#offline-banner').hidden = !offline;
+    copyBtn.hidden = !offline;
+    submitBtn.hidden = offline;
+    renderProgress(); renderMine();
+  }
+  copyBtn.addEventListener('click', () => {
+    if (!validate()) return;
+    copyText('Story from ' + nameEl.value.trim() + ':\n' + storyEl.value.trim(), statusEl);
+  });
+  function validate() {
+    if (!nameEl.value.trim()) { setStatus(statusEl, 'Add your name first.', 'err'); nameEl.focus(); return false; }
+    if (storyEl.value.trim().length < 3) { setStatus(statusEl, 'Write something first.', 'err'); storyEl.focus(); return false; }
+    setStatus(statusEl, '');
+    return true;
+  }
+
+  // ---------- submit ----------
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    if (mode !== 'online' || writing || !validate()) return;
+    const entry = { id: rid(), story: storyEl.value.trim(), ts: Date.now() };
+    const next = { name: nameEl.value.trim(), stories: [ ...(myDoc.stories || []), entry ], updated: Date.now() };
+    writing = true; submitBtn.disabled = true; setStatus(statusEl, 'Saving…');
+    try {
+      await myRef.set(next);
+      myDoc = next; renderMine(); renderProgress();
+      storyEl.value = ''; clearDraft(); setStatus(statusEl, '');
+      const n = next.stories.length;
+      const subs = ['Got another one in you?', 'The next one usually follows right behind.', 'Come back whenever another hits you.', 'Keep them coming.'];
+      toast(n, n === 1 ? 'First one saved.' : 'Saved — that\'s ' + n + '.', subs[n % subs.length]);
+      storyEl.focus();
+    } catch (e) {
+      const code = e && e.code;
+      if (code === 'invalid_argument' || code === 'not_granted' || code === 'revoked') {
+        setMode('offline'); setStatus(statusEl, "Couldn't save from this account — copy it and send it to Hunter instead.", 'err');
+      } else if (code === 'quota_exceeded') setStatus(statusEl, 'Storage is full — tell Hunter.', 'err');
+      else setStatus(statusEl, "Couldn't reach the server. Try again in a moment.", 'err');
+    } finally { writing = false; submitBtn.disabled = false; }
+  });
+
+  async function deleteMine(id) {
+    if (writing) return;
+    const next = { ...myDoc, stories: (myDoc.stories || []).filter(s => s.id !== id), updated: Date.now() };
+    writing = true;
+    try { await myRef.set(next); myDoc = next; renderMine(); renderProgress(); }
+    catch { toast('!', "Couldn't remove it", 'Try again in a moment.'); }
+    finally { writing = false; }
+  }
+  function renderMine() {
+    const list = myDoc.stories || [];
+    mineCard.hidden = mode !== 'online' || !list.length;
+    if (!list.length) { mineList.innerHTML = ''; return; }
+    mineList.innerHTML = list.map((e, i) => `
+      <div class="entry">
+        <div class="num">${i + 1}</div>
+        <div class="body"><p class="text">${esc(e.story)}</p><div class="by">Added ${fmtDate(e.ts)}</div></div>
+        <button class="del" data-del="${esc(e.id)}" title="Remove this story">Remove</button>
+      </div>`).join('');
+  }
+  mineList.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-del]'); if (!b) return;
+    if (b.dataset.confirm) deleteMine(b.dataset.del);
+    else { b.dataset.confirm = '1'; b.textContent = 'Really remove?'; setTimeout(() => { delete b.dataset.confirm; b.textContent = 'Remove'; }, 3000); }
+  });
+
+  // ---------- admin ----------
+  function showTab(which) {
+    $('#submit-view').hidden = which !== 'submit';
+    $('#admin-view').hidden = which !== 'admin';
+    $('#tab-submit').classList.toggle('on', which === 'submit');
+    $('#tab-admin').classList.toggle('on', which === 'admin');
+  }
+  $('#tab-submit').addEventListener('click', () => showTab('submit'));
+  $('#tab-admin').addEventListener('click', () => showTab('admin'));
+  function flatten() {
+    const out = [];
+    for (const d of allDocs) for (const e of (d.stories || [])) out.push({ ...e, name: d.name || 'Anonymous' });
+    out.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    return out;
+  }
+  function renderAdmin() {
+    const all = flatten();
+    $('#stat-stories').textContent = all.length;
+    $('#stat-cousins').textContent = allDocs.filter(d => (d.stories || []).length).length;
+    $('#stat-latest').textContent = all.length ? fmtDate(all[all.length - 1].ts) : '—';
+    const byName = {};
+    for (const e of all) (byName[e.name] ||= []).push(e);
+    const names = Object.keys(byName).sort((a, b) => a.localeCompare(b));
+    $('#admin-list').innerHTML = all.length ? names.map(n => `
+      <h3 style="font-size:18px;margin:18px 0 4px;color:var(--accent)">${esc(n)} <span style="color:var(--ink-2);font-family:Inter;font-size:13px;font-weight:500">· ${byName[n].length}</span></h3>
+      ${byName[n].map((e, i) => `
+        <div class="entry"><div class="num">${i + 1}</div>
+          <div class="body"><p class="text">${esc(e.story)}</p><div class="by">${fmtDate(e.ts)}</div></div></div>`).join('')}`).join('')
+      : '<p class="empty">Nothing submitted yet.</p>';
+  }
+  $('#copy-all').addEventListener('click', () => {
+    const all = flatten();
+    copyText(all.map((e, i) => (i + 1) + '. [' + e.name + '] ' + e.story).join('\n\n'), $('#admin-status'));
+  });
+
+  // ---------- boot ----------
+  loadDraft();
+  async function init() {
+    if (!(window.claude && typeof window.claude.use === 'function')) { setMode('offline'); return; }
+    let d, u;
+    try { [d, u] = await Promise.all([claude.use('db'), claude.use('user')]); } catch { setMode('offline'); return; }
+    db = d; user = u;
+    if (!db || !user) { setMode('offline'); return; }
+    try { uid = await user.id(); } catch { uid = null; }
+    if (!uid) { setMode('offline'); return; }
+    let canWrite = null;
+    try { canWrite = await user.can('data.write'); } catch {}
+    if (canWrite === false) { setMode('offline'); return; }
+
+    myRef = db.doc('stories/' + uid);
+    setMode('online');
+    setStatus(statusEl, 'Loading your stories…');
+    const loadTimer = setTimeout(() => setStatus(statusEl, "Can't reach saved stories yet — you can still submit."), 10000);
+    myRef.onSnapshot(snap => {
+      if (!snap.metadata.fromCache) { clearTimeout(loadTimer); setStatus(statusEl, ''); }
+      myDoc = snap.exists ? { name: '', stories: [], ...snap.data() } : { name: '', stories: [] };
+      if (!nameEl.value && myDoc.name) nameEl.value = myDoc.name;
+      renderMine(); renderProgress();
+    }, err => {
+      clearTimeout(loadTimer);
+      if (err && (err.code === 'revoked' || err.code === 'not_granted')) setMode('offline');
+      else setStatus(statusEl, "Couldn't load your previous stories.", 'err');
+    });
+
+    let isOwner = false;
+    try { isOwner = await user.isOwner(); } catch {}
+    if (isOwner) {
+      $('#tabs').hidden = false;
+      db.collection('stories').onSnapshot(snap => {
+        allDocs = snap.docs.filter(x => x.exists).map(x => ({ id: x.id, ...x.data() }));
+        renderAdmin();
+      }, err => setStatus($('#admin-status'), "Couldn't load submissions" + (err && err.message ? ': ' + err.message : '.'), 'err'));
+    }
+  }
+  init();
+})();
+</script>
+</body>
+</html>
